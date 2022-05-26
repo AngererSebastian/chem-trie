@@ -1,7 +1,8 @@
 #![feature(let_chains)]
-mod lib;
+mod elements;
 mod trie;
 
 fn main() {
-    println!("Hello, world!");
+    let trie = elements::element_trie();
+    println!("{:#?}", trie);
 }

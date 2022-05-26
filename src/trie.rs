@@ -20,7 +20,7 @@ impl<T, Step: Ord + Clone> Trie<T, Step> {
         let node = self.paths.entry(steps[0].clone()).or_insert(Self::root());
         let steps = &steps[1..];
 
-        if steps.len() == 1 {
+        if steps.is_empty() {
             node.value = Some(val)
         } else {
             node.insert(steps, val)
@@ -40,7 +40,11 @@ impl<T, Step: Ord + Clone> Trie<T, Step> {
         let mut steps = steps.iter().enumerate();
         let mut node = self;
 
-        while let Some((i, s)) = steps.next() && (node.value.is_some() || i == 0) {
+        while let Some((i, s)) = steps.next() {
+            // no let_chains yet
+            if node.value.is_none() && i != 0 {
+                break;
+            }
             node = match node.paths.get(s) {
                 Some(n) => n,
                 None => break,

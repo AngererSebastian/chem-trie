@@ -1,6 +1,6 @@
-mod trie;
-use trie::Trie;
+use super::trie::Trie;
 
+#[derive(Debug)]
 pub struct Element {
     pub name: &'static str,
     pub short: &'static str,
@@ -14,7 +14,7 @@ const ELEMS_STR: &'static str = include_str!("../elements.csv");
 pub fn element_trie() -> Trie<Element, char> {
     let elems = get_elements();
 
-    elems.into_iter().fold(Trie::root(), |trie, elem| {
+    elems.into_iter().fold(Trie::root(), |mut trie, elem| {
         let steps: Vec<_> = elem.short.chars().collect();
         trie.insert(&steps, elem);
         trie
@@ -33,6 +33,7 @@ pub fn get_elements() -> Vec<Element> {
 ///
 /// if the line is not in the format this function panics
 fn element_from_csv(line: &'static str) -> Element {
+    dbg!(line);
     let mut attrs = line.split(',');
 
     Element {
