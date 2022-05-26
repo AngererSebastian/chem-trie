@@ -27,10 +27,24 @@ impl<T, Step: Ord + Clone> Trie<T, Step> {
         }
     }
 
-    pub fn get(&self, steps: &[Step]) -> Option<&T> {
+    pub fn exact_match(&self, steps: &[Step]) -> Option<&T> {
         let mut node = self;
         for s in steps {
             node = node.paths.get(s)?;
+        }
+
+        node.value.as_ref()
+    }
+
+    pub fn best_match(&self, steps: &[Step]) -> Option<&T> {
+        let mut steps = steps.iter().enumerate();
+        let mut node = self;
+
+        while let Some((i, s)) = steps.next() && (node.value.is_some() || i == 0) {
+            node = match node.paths.get(s) {
+                Some(n) => n,
+                None => break,
+            }
         }
 
         node.value.as_ref()
