@@ -1,12 +1,13 @@
 use std::collections::BTreeMap;
+use std::fmt::Debug;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Trie<T, Step> {
     value: Option<T>,
     paths: BTreeMap<Step, Trie<T, Step>>,
 }
 
-impl<T, Step: Ord + Clone> Trie<T, Step> {
+impl<T: Debug, Step: Ord + Clone + Debug> Trie<T, Step> {
     pub fn root() -> Self {
         Self::default()
     }
@@ -37,14 +38,9 @@ impl<T, Step: Ord + Clone> Trie<T, Step> {
     }
 
     pub fn best_match(&self, steps: &[Step]) -> Option<&T> {
-        let mut steps = steps.iter().enumerate();
         let mut node = self;
 
-        while let Some((i, s)) = steps.next() {
-            // no let_chains yet
-            if node.value.is_none() && i != 0 {
-                break;
-            }
+        for s in steps.iter() {
             node = match node.paths.get(s) {
                 Some(n) => n,
                 None => break,
@@ -61,5 +57,59 @@ impl<T, Steps> Default for Trie<T, Steps> {
             value: None,
             paths: BTreeMap::new(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Trie;
+    #[test]
+    fn insert() {
+        let mut trie: Trie<Vec<char>, char> = Trie::root();
+
+        let hello: Vec<char> = "hello".chars().collect();
+        let hell: Vec<char> = "hell".chars().collect();
+        let hi: Vec<char> = "hi".chars().collect();
+        let bye: Vec<char> = "bye".chars().collect();
+
+        trie.insert(&hello, hello.clone());
+        trie.insert(&hell, hell.clone());
+        trie.insert(&hi, hi.clone());
+        trie.insert(&bye, bye.clone());
+
+        // are exactly there
+        assert!(trie.exact_match(&hello).is_some());
+        assert!(trie.exact_match(&hell).is_some());
+        assert!(trie.exact_match(&hi).is_some());
+        assert!(trie.exact_match(&bye).is_some());
+
+        // compare structure
+        let keys: Vec<_> = trie.paths.keys().collect();
+        assert_eq!(keys, vec![&'b', &'h']);
+
+        let h = trie.paths.get(&'h').unwrap();
+        let keys: Vec<_> = h.paths.keys().collect();
+        assert_eq!(keys, vec![&'e', &'i']);
+    }
+
+    #[test]
+    fn best_match() {
+        let mut trie: Trie<Vec<char>, char> = Trie::root();
+
+        let hello: Vec<char> = "hello".chars().collect();
+        let hell: Vec<char> = "hell".chars().collect();
+        let hi: Vec<char> = "hi".chars().collect();
+        let bye: Vec<char> = "bye".chars().collect();
+
+        trie.insert(&hello, hello.clone());
+        trie.insert(&hell, hell.clone());
+        trie.insert(&hi, hi.clone());
+        trie.insert(&bye, bye.clone());
+
+        let hello_world: Vec<char> = "hello world".chars().collect();
+
+        let best = trie.best_match(&hello_world).unwrap();
+
+        assert_eq!(best, &hello);
     }
 }
