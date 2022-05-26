@@ -15,7 +15,7 @@ pub fn element_trie() -> Trie<Element, char> {
     let elems = get_elements();
 
     elems.into_iter().fold(Trie::root(), |mut trie, elem| {
-        let steps: Vec<_> = elem.short.chars().collect();
+        let steps: Vec<_> = elem.short.to_lowercase().chars().collect();
         trie.insert(&steps, elem);
         trie
     })
@@ -33,7 +33,6 @@ pub fn get_elements() -> Vec<Element> {
 ///
 /// if the line is not in the format this function panics
 fn element_from_csv(line: &'static str) -> Element {
-    dbg!(line);
     let mut attrs = line.split(',');
 
     Element {
