@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 #[derive(Debug)]
-struct Trie<T, Step> {
+pub struct Trie<T, Step> {
     value: Option<T>,
     paths: BTreeMap<Step, Trie<T, Step>>,
 }
