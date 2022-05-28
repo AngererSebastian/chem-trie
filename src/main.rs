@@ -1,4 +1,7 @@
 #![feature(let_chains)]
+#![feature(is_some_with)]
+use itertools::Itertools;
+
 mod elements;
 mod trie;
 
@@ -8,22 +11,44 @@ fn main() {
     let word: Vec<_> = word.to_lowercase().chars().collect();
     let mut word = &word[..];
 
-    let mut elements = vec![];
+    let elements = std::iter::from_fn(|| {
+        if !word.is_empty() {
+            // have Err with the char if no element can be found
+            let r = trie.best_match(word).ok_or(word[0]);
+            // move one character on error else move the length of the symbol
+            // to advance the words
+            let step = r.map(|e| e.short.len()).unwrap_or(1);
+            word = &word[step..];
+            Some(r)
+        } else {
+            None
+        }
+    })
+    // squash adjacent not recognized characters into string sequences for nicer output
+    .peekable() // make it possible to inspect the next element before returning the current
+    .batching(|elems| {
+        if elems.peek().is_some_with(|r| r.is_err()) {
+            let folded_err = elems
+                // all adjacent errors
+                .peeking_take_while(|r| r.is_err())
+                // convert those into one big error
+                .fold(String::new(), |mut s, e| {
+                    s.push(e.unwrap_err());
+                    s
+                });
+            Some(Err(folded_err))
+        } else {
+            // non errors -> elements and none
+            // just return it, and convert the error into a string because of type matching
+            elems.next().map(|r| r.map_err(|e| e.into()))
+        }
+    })
+    .collect::<Vec<_>>();
 
-    while !word.is_empty() {
-        // have Err with the char if no element can be found
-        let r = trie.best_match(word).ok_or(word[0]);
-        elements.push(r);
-        // move one character on error else move the length of the symbol
-        // to advance the words
-        let step = r.map(|e| e.short.len()).unwrap_or(1);
-        word = &word[step..];
-    }
-
-    // was a success if no error sequence happened
     if elements.iter().any(|e| e.is_err()) {
         println!("NOT POSSIBLE\n=============\nresults:");
     }
 
+    // squash the errors
     println!("{:#?}", elements);
 }
