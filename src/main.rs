@@ -10,12 +10,18 @@ fn main() {
 
     let mut elements = vec![];
 
-    while let Some(e) = trie.best_match(word) {
-        elements.push(e);
-        word = &word[e.short.len()..];
+    while !word.is_empty() {
+        // have Err with the char if no element can be found
+        let r = trie.best_match(word).ok_or(word[0]);
+        elements.push(r);
+        // move one character on error else move the length of the symbol
+        // to advance the words
+        let step = r.map(|e| e.short.len()).unwrap_or(1);
+        word = &word[step..];
     }
 
-    if !word.is_empty() {
+    // was a success if no error sequence happened
+    if elements.iter().any(|e| e.is_err()) {
         println!("NOT POSSIBLE\n=============\nresults:");
     }
 

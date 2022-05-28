@@ -3,5 +3,5 @@
 version = 3
 
 [[package]]
-name = "chem-trie"
+name = "chemes-trie"
 version = "0.1.0"
