@@ -6,12 +6,26 @@ mod elements;
 mod trie;
 
 fn main() {
-    let trie = elements::element_trie();
     let word = std::env::args().nth(1).unwrap();
     let word: Vec<_> = word.to_lowercase().chars().collect();
-    let mut word = &word[..];
+    let word = &word[..];
 
-    let elements = std::iter::from_fn(|| {
+    let trie = elements::element_trie();
+    let elements: Vec<_> = get_elements(&trie, word).collect();
+
+    if elements.iter().any(|e| e.is_err()) {
+        println!("NOT POSSIBLE\n=============\nresults:");
+    }
+
+    // squash the errors
+    println!("{:#?}", elements);
+}
+
+fn get_elements<'a>(
+    trie: &'a trie::Trie<elements::Element, char>,
+    mut word: &'a [char],
+) -> impl Iterator<Item = Result<&'a elements::Element, String>> + 'a {
+    std::iter::from_fn(move || {
         if !word.is_empty() {
             // have Err with the char if no element can be found
             let r = trie.best_match(word).ok_or(word[0]);
@@ -43,12 +57,4 @@ fn main() {
             elems.next().map(|r| r.map_err(|e| e.into()))
         }
     })
-    .collect::<Vec<_>>();
-
-    if elements.iter().any(|e| e.is_err()) {
-        println!("NOT POSSIBLE\n=============\nresults:");
-    }
-
-    // squash the errors
-    println!("{:#?}", elements);
 }
