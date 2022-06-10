@@ -1,6 +1,7 @@
 use super::trie::Trie;
+use serde::{Serialize};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 pub struct Element {
     pub name: &'static str,
     pub short: &'static str,

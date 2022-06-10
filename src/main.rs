@@ -1,30 +1,41 @@
 #![feature(let_chains)]
 #![feature(is_some_with)]
 use itertools::Itertools;
+use owo_colors::OwoColorize;
+use serde::Serialize;
+use structopt::StructOpt;
 
 mod elements;
 mod trie;
 
+type LookupResult<'a> = Result<&'a elements::Element, String>;
+
+#[derive(StructOpt)]
+struct Opts {
+    #[structopt(short, long)]
+    json: bool,
+    word: String,
+}
+
 fn main() {
-    let word = std::env::args().nth(1).unwrap();
-    let word: Vec<_> = word.to_lowercase().chars().collect();
+    let opts = Opts::from_args();
+    let word: Vec<_> = opts.word.to_lowercase().chars().collect();
     let word = &word[..];
 
     let trie = elements::element_trie();
     let elements: Vec<_> = get_elements(&trie, word).collect();
 
-    if elements.iter().any(|e| e.is_err()) {
-        println!("NOT POSSIBLE\n=============\nresults:");
+    if opts.json {
+        print_json(&elements)
+    } else {
+        print_pretty(&elements)
     }
-
-    // squash the errors
-    println!("{:#?}", elements);
 }
 
 fn get_elements<'a>(
     trie: &'a trie::Trie<elements::Element, char>,
     mut word: &'a [char],
-) -> impl Iterator<Item = Result<&'a elements::Element, String>> + 'a {
+) -> impl Iterator<Item = LookupResult<'a>> + 'a {
     std::iter::from_fn(move || {
         if !word.is_empty() {
             // have Err with the char if no element can be found
@@ -57,4 +68,67 @@ fn get_elements<'a>(
             elems.next().map(|r| r.map_err(|e| e.into()))
         }
     })
+}
+
+fn print_pretty(elements: &[LookupResult<'_>]) {
+    for e in elements.iter() {
+        match e {
+            Ok(e) => print!("{}", e.short.blue()),
+            Err(e) => print!("{}", e.red()),
+        }
+    }
+
+    println!("\n\nDISTINCT elements:\n-----------------");
+
+    let distincs: Vec<_> = elements
+        .iter()
+        .filter_map(|r| r.as_ref().ok())
+        .sorted()
+        .dedup()
+        .collect();
+
+    let name_len = distincs
+        .iter()
+        .map(|e| e.name.len())
+        .max()
+        .unwrap_or_default();
+
+    for &d in distincs {
+        println!(
+            " {:2} - {:max_name$} protons: {:02}, neutrons: {:02}, electrons: {:02}",
+            d.short.blue(),
+            d.name.to_string() + ",",
+            d.protons.red(),
+            d.neutrons.green(),
+            d.electrons.yellow(),
+            max_name = name_len + 1
+        );
+    }
+}
+
+#[derive(Serialize)]
+struct JsonOutput<'a> {
+    sequence: std::borrow::Cow<'a, str>,
+    matched: Option<&'a elements::Element>,
+}
+
+fn print_json(elements: &[LookupResult<'_>]) {
+    // do this without serde
+    let json = elements
+        .iter()
+        .map(|elem| match elem {
+            Ok(elem) => JsonOutput {
+                sequence: elem.short.into(),
+                matched: Some(&elem),
+            },
+            Err(err) => JsonOutput {
+                sequence: err.into(),
+                matched: None,
+            },
+        })
+        .collect_vec();
+
+    let output = serde_json::to_string(&json).unwrap();
+
+    println!("{}", output);
 }
